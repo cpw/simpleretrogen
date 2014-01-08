@@ -1,0 +1,21 @@
+[
+{
+  "modid": "simpleretrogen",
+  "name": "Simple Retrogen",
+  "description": "Simple Retrogen for mods using IWorldGenerator to generate their world stuff.",
+  "version": "${version}",
+  "mcversion": ${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authors": [
+    "cpw"
+  ],
+  "credits": "By cpw",
+  "logoFile": "",
+  "screenshots": [
+  ],
+  "parent":"",
+  "dependencies": [
+  ]
+}
+]
