@@ -70,6 +70,7 @@ public class WorldRetrogen {
     public void preInit(FMLPreInitializationEvent evt)
     {
         Configuration cfg = new Configuration(evt.getSuggestedConfigurationFile());
+        cfg.load();
         Property property = cfg.get(Configuration.CATEGORY_GENERAL, "worldGens", new String[0]);
         property.comment = "List of IWorldGenerator instances to fire retrogen for";
         String[] retros = property.getStringList();
