@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Logger;
 
@@ -27,6 +28,7 @@ import net.minecraftforge.event.world.ChunkDataEvent;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MapMaker;
@@ -45,6 +47,7 @@ import cpw.mods.fml.common.ObfuscationReflectionHelper;
 import cpw.mods.fml.common.TickType;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerAboutToStartEvent;
+import cpw.mods.fml.common.event.FMLServerStoppedEvent;
 import cpw.mods.fml.common.network.NetworkMod;
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.common.registry.TickRegistry;
@@ -63,7 +66,7 @@ public class WorldRetrogen {
     private Map<World,ListMultimap<ChunkCoordIntPair,String>> pendingWork;
     private Map<World,ListMultimap<ChunkCoordIntPair,String>> completedWork;
 
-    private Map<World,Semaphore> completedWorkLocks;
+    private ConcurrentMap<World,Semaphore> completedWorkLocks;
 
     private int maxPerTick;
     @EventHandler
@@ -92,6 +95,7 @@ public class WorldRetrogen {
         this.log = evt.getModLog();
         MinecraftForge.EVENT_BUS.register(this);
         TickRegistry.registerTickHandler(new LastTick(), Side.SERVER);
+        this.delegates = Maps.newHashMap();
     }
 
     @EventHandler
@@ -103,7 +107,7 @@ public class WorldRetrogen {
 
         Set<IWorldGenerator> worldGens = ObfuscationReflectionHelper.getPrivateValue(GameRegistry.class, null, "worldGenerators");
 
-        for (String retro : retros)
+        for (String retro : ImmutableSet.copyOf(retros))
         {
             if (!delegates.containsKey(retro))
             {
@@ -124,11 +128,34 @@ public class WorldRetrogen {
                     }
                 }
 
-                FMLLog.warning("WorldRetrogen was not able to locate world generator class %s, it will be skipped", retro);
-                retros.remove(retro);
+                if (!delegates.containsKey(retro))
+                {
+                    FMLLog.warning("WorldRetrogen was not able to locate world generator class %s, it will be skipped, found %s", retro, worldGens);
+                    retros.remove(retro);
+                }
             }
         }
     }
+
+    public void serverStopped(FMLServerStoppedEvent evt)
+    {
+        Set<IWorldGenerator> worldGens = ObfuscationReflectionHelper.getPrivateValue(GameRegistry.class, null, "worldGenerators");
+
+        for (TargetWorldWrapper tww : delegates.values())
+        {
+            worldGens.remove(tww);
+            worldGens.add(tww.delegate);
+        }
+
+        delegates.clear();
+    }
+
+    private Semaphore getSemaphoreFor(World w)
+    {
+        completedWorkLocks.putIfAbsent(w, new Semaphore(1));
+        return completedWorkLocks.get(w);
+    }
+
     private class LastTick implements ITickHandler {
         private int counter = 0;
         @Override
@@ -136,10 +163,7 @@ public class WorldRetrogen {
         {
             counter = 0;
             World w = (World) tickData[0];
-            if (!completedWorkLocks.containsKey(w))
-            {
-                completedWorkLocks.put(w, new Semaphore(1));
-            }
+            getSemaphoreFor(w);
         }
 
         @Override
@@ -151,6 +175,10 @@ public class WorldRetrogen {
                 return;
             }
             ListMultimap<ChunkCoordIntPair, String> pending = pendingWork.get(w);
+            if (pending == null)
+            {
+                return;
+            }
             ImmutableList<Entry<ChunkCoordIntPair, String>> forProcessing = ImmutableList.copyOf(Iterables.limit(pending.entries(),maxPerTick+1));
             for (Entry<ChunkCoordIntPair, String> entry : forProcessing)
             {
@@ -198,6 +226,8 @@ public class WorldRetrogen {
         {
             return;
         }
+        getSemaphoreFor(w);
+
         Chunk chk = chunkevt.getChunk();
         Set<String> existingGens = Sets.newHashSet();
         NBTTagCompound data = chunkevt.getData();
@@ -229,7 +259,7 @@ public class WorldRetrogen {
         {
             return;
         }
-        completedWorkLocks.get(w).acquireUninterruptibly();
+        getSemaphoreFor(w).acquireUninterruptibly();
         try
         {
             if (completedWork.containsKey(w))
@@ -245,13 +275,13 @@ public class WorldRetrogen {
                 data.setCompoundTag(this.marker, retro);
                 for (String retrogen : list)
                 {
-                    lst.appendTag(new NBTTagString(retrogen));
+                    lst.appendTag(new NBTTagString("",retrogen));
                 }
             }
         }
         finally
         {
-            completedWorkLocks.get(w).release();
+            getSemaphoreFor(w).release();
         }
     }
 
@@ -277,7 +307,7 @@ public class WorldRetrogen {
             pendingMap.remove(chunkCoords, marker);
         }
 
-        completedWorkLocks.get(world).acquireUninterruptibly();
+        getSemaphoreFor(world).acquireUninterruptibly();
         try
         {
             ListMultimap<ChunkCoordIntPair, String> completedMap = completedWork.get(world);
@@ -291,7 +321,7 @@ public class WorldRetrogen {
         }
         finally
         {
-            completedWorkLocks.get(world).release();
+            getSemaphoreFor(world).release();
         }
     }
 
@@ -305,7 +335,7 @@ public class WorldRetrogen {
 
         fmlRandom.setSeed(chunkSeed);
         ChunkProviderServer providerServer = world.theChunkProviderServer;
-        IChunkProvider generator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, providerServer, "currentChunkProvider");
+        IChunkProvider generator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, providerServer, "field_73246_d", "currentChunkProvider");
         delegates.get(retro).delegate.generate(fmlRandom, chunkCoords.chunkXPos, chunkCoords.chunkZPos, world, generator, providerServer);
         FMLLog.fine("Retrogenerated chunk for %s", retro);
         completeRetrogen(chunkCoords, world, retro);

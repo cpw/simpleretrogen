@@ -4,7 +4,7 @@
   "name": "Simple Retrogen",
   "description": "Simple Retrogen for mods using IWorldGenerator to generate their world stuff.",
   "version": "${version}",
-  "mcversion": ${mcversion}",
+  "mcversion": "${mcversion}",
   "url": "",
   "updateUrl": "",
   "authors": [
