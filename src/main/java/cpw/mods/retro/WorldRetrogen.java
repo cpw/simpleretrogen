@@ -93,6 +93,7 @@ public class WorldRetrogen {
         this.completedWorkLocks = new MapMaker().weakKeys().makeMap();
 
         Set<IWorldGenerator> worldGens = ObfuscationReflectionHelper.getPrivateValue(GameRegistry.class, null, "worldGenerators");
+        Map<IWorldGenerator,Integer> worldGenIdx = ObfuscationReflectionHelper.getPrivateValue(GameRegistry.class, null, "worldGeneratorIndex");
 
         for (String retro : ImmutableSet.copyOf(retros))
         {
@@ -109,6 +110,8 @@ public class WorldRetrogen {
                         tww.delegate = wg;
                         tww.tag = retro;
                         worldGens.add(tww);
+                        Integer idx = worldGenIdx.remove(wg);
+                        worldGenIdx.put(tww, idx);
                         FMLLog.info("Successfully substituted %s with delegate", retro);
                         delegates.put(retro, tww);
                         break;
@@ -128,11 +131,14 @@ public class WorldRetrogen {
     public void serverStopped(FMLServerStoppedEvent evt)
     {
         Set<IWorldGenerator> worldGens = ObfuscationReflectionHelper.getPrivateValue(GameRegistry.class, null, "worldGenerators");
+        Map<IWorldGenerator,Integer> worldGenIdx = ObfuscationReflectionHelper.getPrivateValue(GameRegistry.class, null, "worldGeneratorIndex");
 
         for (TargetWorldWrapper tww : delegates.values())
         {
             worldGens.remove(tww);
+            Integer idx = worldGenIdx.remove(tww);
             worldGens.add(tww.delegate);
+            worldGenIdx.put(tww.delegate,idx);
         }
 
         delegates.clear();
