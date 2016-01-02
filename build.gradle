@@ -7,18 +7,23 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:1.0-SNAPSHOT'
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
     }
 }
 
-apply plugin: 'forge'
+apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'maven'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
 
-version = "1.0"
+version = "2.0"
 group= "cpw.mods.simpleretrogen" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "simpleretrogen"
 
 minecraft {
-	version = "1.6.4-9.11.1.964"
+	version = "1.8.9-11.15.0.1671"
+    mappings = "stable_20"
+    runDir = "run"
 }
 
 processResources

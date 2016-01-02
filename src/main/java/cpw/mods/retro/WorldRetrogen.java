@@ -1,31 +1,5 @@
 package cpw.mods.retro;
 
-import java.util.EnumSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Semaphore;
-import java.util.logging.Logger;
-
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagString;
-import net.minecraft.world.ChunkCoordIntPair;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraft.world.gen.ChunkProviderServer;
-import net.minecraftforge.common.Configuration;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.Property;
-import net.minecraftforge.event.ForgeSubscribe;
-import net.minecraftforge.event.world.ChunkDataEvent;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -35,28 +9,42 @@ import com.google.common.collect.MapMaker;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
-import com.google.common.collect.UnmodifiableIterator;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.NBTTagString;
+import net.minecraft.world.ChunkCoordIntPair;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.IChunkProvider;
+import net.minecraft.world.gen.ChunkProviderServer;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.common.config.Property;
+import net.minecraftforge.event.world.ChunkDataEvent;
+import net.minecraftforge.fml.common.FMLLog;
+import net.minecraftforge.fml.common.IWorldGenerator;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.Mod.EventHandler;
+import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
+import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.common.registry.GameRegistry;
 
-import cpw.mods.fml.common.FMLLog;
-import cpw.mods.fml.common.ITickHandler;
-import cpw.mods.fml.common.IWorldGenerator;
-import cpw.mods.fml.common.Mod;
-import cpw.mods.fml.common.Mod.EventHandler;
-import cpw.mods.fml.common.Mod.Instance;
-import cpw.mods.fml.common.ObfuscationReflectionHelper;
-import cpw.mods.fml.common.TickType;
-import cpw.mods.fml.common.event.FMLPreInitializationEvent;
-import cpw.mods.fml.common.event.FMLServerAboutToStartEvent;
-import cpw.mods.fml.common.event.FMLServerStoppedEvent;
-import cpw.mods.fml.common.network.NetworkMod;
-import cpw.mods.fml.common.registry.GameRegistry;
-import cpw.mods.fml.common.registry.TickRegistry;
-import cpw.mods.fml.relauncher.Side;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Semaphore;
 
-@Mod(modid="simpleretrogen", name="Simple Retrogen", version="1.0")
+@Mod(modid="simpleretrogen", name="Simple Retrogen", version="2.0")
 public class WorldRetrogen {
-    private Logger log;
-
     private Set<String> retros;
 
     private String marker;
@@ -92,9 +80,8 @@ public class WorldRetrogen {
             cfg.save();
         }
 
-        this.log = evt.getModLog();
         MinecraftForge.EVENT_BUS.register(this);
-        TickRegistry.registerTickHandler(new LastTick(), Side.SERVER);
+        MinecraftForge.EVENT_BUS.register(new LastTick());
         this.delegates = Maps.newHashMap();
     }
 
@@ -137,6 +124,7 @@ public class WorldRetrogen {
         }
     }
 
+    @EventHandler
     public void serverStopped(FMLServerStoppedEvent evt)
     {
         Set<IWorldGenerator> worldGens = ObfuscationReflectionHelper.getPrivateValue(GameRegistry.class, null, "worldGenerators");
@@ -156,53 +144,40 @@ public class WorldRetrogen {
         return completedWorkLocks.get(w);
     }
 
-    private class LastTick implements ITickHandler {
+    private class LastTick {
         private int counter = 0;
-        @Override
-        public void tickStart(EnumSet<TickType> type, Object... tickData)
+        @SubscribeEvent
+        public void tickStart(TickEvent.WorldTickEvent tick)
         {
-            counter = 0;
-            World w = (World) tickData[0];
-            getSemaphoreFor(w);
-        }
-
-        @Override
-        public void tickEnd(EnumSet<TickType> type, Object... tickData)
-        {
-            World w = (World) tickData[0];
+            World w = tick.world;
             if (!(w instanceof WorldServer))
             {
                 return;
             }
-            ListMultimap<ChunkCoordIntPair, String> pending = pendingWork.get(w);
-            if (pending == null)
+            if (tick.phase == TickEvent.Phase.START)
             {
-                return;
+                counter = 0;
+                getSemaphoreFor(w);
             }
-            ImmutableList<Entry<ChunkCoordIntPair, String>> forProcessing = ImmutableList.copyOf(Iterables.limit(pending.entries(),maxPerTick+1));
-            for (Entry<ChunkCoordIntPair, String> entry : forProcessing)
+            else
             {
-                if (counter ++ > maxPerTick)
+                ListMultimap<ChunkCoordIntPair, String> pending = pendingWork.get(w);
+                if (pending == null)
                 {
-                    FMLLog.fine("Completed %d retrogens this tick. There are %d left for world %s", counter, pending.size(), w.getWorldInfo().getWorldName());
                     return;
                 }
-                runRetrogen((WorldServer) w, entry.getKey(), entry.getValue());
+                ImmutableList<Entry<ChunkCoordIntPair, String>> forProcessing = ImmutableList.copyOf(Iterables.limit(pending.entries(), maxPerTick + 1));
+                for (Entry<ChunkCoordIntPair, String> entry : forProcessing)
+                {
+                    if (counter++ > maxPerTick)
+                    {
+                        FMLLog.fine("Completed %d retrogens this tick. There are %d left for world %s", counter, pending.size(), w.getWorldInfo().getWorldName());
+                        return;
+                    }
+                    runRetrogen((WorldServer)w, entry.getKey(), entry.getValue());
+                }
             }
         }
-
-        @Override
-        public EnumSet<TickType> ticks()
-        {
-            return EnumSet.of(TickType.WORLD);
-        }
-
-        @Override
-        public String getLabel()
-        {
-            return "WorldRetrogen";
-        }
-
     }
 
     private class TargetWorldWrapper implements IWorldGenerator {
@@ -218,7 +193,7 @@ public class WorldRetrogen {
         }
     }
 
-    @ForgeSubscribe
+    @SubscribeEvent
     public void onChunkLoad(ChunkDataEvent.Load chunkevt)
     {
         World w = chunkevt.world;
@@ -232,11 +207,10 @@ public class WorldRetrogen {
         Set<String> existingGens = Sets.newHashSet();
         NBTTagCompound data = chunkevt.getData();
         NBTTagCompound marker = data.getCompoundTag(this.marker);
-        NBTTagList tagList = marker.getTagList("list");
+        NBTTagList tagList = marker.getTagList("list",8);
         for (int i = 0; i < tagList.tagCount(); i++)
         {
-            NBTTagString tagAt = (NBTTagString) tagList.tagAt(i);
-            existingGens.add(tagAt.data);
+            existingGens.add(tagList.getStringTagAt(i));
         }
 
         SetView<String> difference = Sets.difference(retros, existingGens);
@@ -251,7 +225,7 @@ public class WorldRetrogen {
         }
     }
 
-    @ForgeSubscribe
+    @SubscribeEvent
     public void onChunkSave(ChunkDataEvent.Save chunkevt)
     {
         World w = chunkevt.world;
@@ -272,10 +246,10 @@ public class WorldRetrogen {
                 NBTTagCompound retro = new NBTTagCompound();
                 NBTTagList lst = new NBTTagList();
                 retro.setTag("list", lst);
-                data.setCompoundTag(this.marker, retro);
+                data.setTag(this.marker, retro);
                 for (String retrogen : list)
                 {
-                    lst.appendTag(new NBTTagString("",retrogen));
+                    lst.appendTag(new NBTTagString(retrogen));
                 }
             }
         }

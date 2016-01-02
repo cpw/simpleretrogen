@@ -5,6 +5,10 @@
 *.war
 *.ear
 
+simpleretrogen.iml
+simpleretrogen.ipr
+simpleretrogen.iws
+
 build/
 .gradle/
 .classpath
