@@ -16,7 +16,7 @@ apply plugin: 'maven'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 
-version = "2.0"
+version = "2.1"
 group= "cpw.mods.simpleretrogen" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "simpleretrogen"
 

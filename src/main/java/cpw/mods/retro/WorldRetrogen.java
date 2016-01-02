@@ -43,7 +43,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
 
-@Mod(modid="simpleretrogen", name="Simple Retrogen", version="2.0")
+@Mod(modid="simpleretrogen", name="Simple Retrogen", version="2.1")
 public class WorldRetrogen {
     private Set<String> retros;
 
