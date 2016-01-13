@@ -43,7 +43,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
 
-@Mod(modid="simpleretrogen", name="Simple Retrogen", version="2.1")
+@Mod(modid="simpleretrogen", name="Simple Retrogen")
 public class WorldRetrogen {
     private Set<String> retros;
 
@@ -60,6 +60,7 @@ public class WorldRetrogen {
     @EventHandler
     public void preInit(FMLPreInitializationEvent evt)
     {
+        evt.getModMetadata().version = evt.getVersionProperties().getProperty("simpleretrogen.version");
         Configuration cfg = new Configuration(evt.getSuggestedConfigurationFile());
         cfg.load();
         Property property = cfg.get(Configuration.CATEGORY_GENERAL, "worldGens", new String[0]);
