@@ -18,6 +18,7 @@ apply plugin: 'maven'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 
+def versionInfo = getGitVersion()
 version = "${versionInfo['simpleretrogen.version']}"
 group= "cpw.mods" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "simpleretrogen"
