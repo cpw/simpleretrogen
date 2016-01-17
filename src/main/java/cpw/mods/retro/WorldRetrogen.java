@@ -1,3 +1,21 @@
+/*
+ *     Copyright © 2016 cpw
+ *     This file is part of Simpleretrogen.
+ *
+ *     Simpleretrogen is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     Simpleretrogen is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with Simpleretrogen.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cpw.mods.retro;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -38,6 +56,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
@@ -60,7 +79,6 @@ public class WorldRetrogen {
     @EventHandler
     public void preInit(FMLPreInitializationEvent evt)
     {
-        evt.getModMetadata().version = evt.getVersionProperties().getProperty("simpleretrogen.version");
         Configuration cfg = new Configuration(evt.getSuggestedConfigurationFile());
         cfg.load();
         Property property = cfg.get(Configuration.CATEGORY_GENERAL, "worldGens", new String[0]);
