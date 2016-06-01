@@ -30,16 +30,13 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
-import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
-import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
-import net.minecraft.world.ChunkCoordIntPair;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
@@ -64,23 +61,25 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import org.apache.logging.log4j.Level;
 
+import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
 
 @Mod(modid="simpleretrogen", name="Simple Retrogen", acceptableRemoteVersions="*")
+@ParametersAreNonnullByDefault
 public class WorldRetrogen {
     private List<Marker> markers = Lists.newArrayList();
     private Map<String,TargetWorldWrapper> delegates;
 
-    private Map<World,ListMultimap<ChunkCoordIntPair,String>> pendingWork;
-    private Map<World,ListMultimap<ChunkCoordIntPair,String>> completedWork;
+    private Map<World,ListMultimap<ChunkPos,String>> pendingWork;
+    private Map<World,ListMultimap<ChunkPos,String>> completedWork;
 
     private ConcurrentMap<World,Semaphore> completedWorkLocks;
 
@@ -169,12 +168,14 @@ public class WorldRetrogen {
         evt.registerServerCommand(new CommandBase()
         {
             @Override
+            @Nonnull
             public String getCommandName()
             {
                 return "listretrogenclasstargets";
             }
 
             @Override
+            @Nonnull
             public String getCommandUsage(ICommandSender sender)
             {
                 return "List retrogens";
@@ -287,13 +288,13 @@ public class WorldRetrogen {
             }
             else
             {
-                ListMultimap<ChunkCoordIntPair, String> pending = pendingWork.get(w);
+                ListMultimap<ChunkPos, String> pending = pendingWork.get(w);
                 if (pending == null)
                 {
                     return;
                 }
-                ImmutableList<Entry<ChunkCoordIntPair, String>> forProcessing = ImmutableList.copyOf(Iterables.limit(pending.entries(), maxPerTick + 1));
-                for (Entry<ChunkCoordIntPair, String> entry : forProcessing)
+                ImmutableList<Entry<ChunkPos, String>> forProcessing = ImmutableList.copyOf(Iterables.limit(pending.entries(), maxPerTick + 1));
+                for (Entry<ChunkPos, String> entry : forProcessing)
                 {
                     if (counter++ > maxPerTick)
                     {
@@ -315,7 +316,7 @@ public class WorldRetrogen {
         {
             FMLLog.fine("Passing generation for %s through to underlying generator", tag);
             delegate.generate(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider);
-            ChunkCoordIntPair chunkCoordIntPair = new ChunkCoordIntPair(chunkX, chunkZ);
+            ChunkPos chunkCoordIntPair = new ChunkPos(chunkX, chunkZ);
             completeRetrogen(chunkCoordIntPair, world, tag);
         }
     }
@@ -368,7 +369,7 @@ public class WorldRetrogen {
         {
             if (completedWork.containsKey(w))
             {
-                ListMultimap<ChunkCoordIntPair, String> doneChunks = completedWork.get(w);
+                ListMultimap<ChunkPos, String> doneChunks = completedWork.get(w);
                 List<String> retroClassList = doneChunks.get(chunkevt.getChunk().getChunkCoordIntPair());
                 if (retroClassList.isEmpty())
                     return;
@@ -395,11 +396,11 @@ public class WorldRetrogen {
         }
     }
 
-    private void queueRetrogen(String retro, World world, ChunkCoordIntPair chunkCoords)
+    private void queueRetrogen(String retro, World world, ChunkPos chunkCoords)
     {
         if (world instanceof WorldServer)
         {
-            ListMultimap<ChunkCoordIntPair, String> currentWork = pendingWork.get(world);
+            ListMultimap<ChunkPos, String> currentWork = pendingWork.get(world);
             if (currentWork == null)
             {
                 currentWork = ArrayListMultimap.create();
@@ -409,9 +410,9 @@ public class WorldRetrogen {
             currentWork.put(chunkCoords, retro);
         }
     }
-    private void completeRetrogen(ChunkCoordIntPair chunkCoords, World world, String retroClass)
+    private void completeRetrogen(ChunkPos chunkCoords, World world, String retroClass)
     {
-        ListMultimap<ChunkCoordIntPair, String> pendingMap = pendingWork.get(world);
+        ListMultimap<ChunkPos, String> pendingMap = pendingWork.get(world);
         if (pendingMap != null && pendingMap.containsKey(chunkCoords))
         {
             pendingMap.remove(chunkCoords, retroClass);
@@ -420,7 +421,7 @@ public class WorldRetrogen {
         getSemaphoreFor(world).acquireUninterruptibly();
         try
         {
-            ListMultimap<ChunkCoordIntPair, String> completedMap = completedWork.get(world);
+            ListMultimap<ChunkPos, String> completedMap = completedWork.get(world);
             if (completedMap == null)
             {
                 completedMap = ArrayListMultimap.create();
@@ -435,7 +436,7 @@ public class WorldRetrogen {
         }
     }
 
-    private void runRetrogen(WorldServer world, ChunkCoordIntPair chunkCoords, String retroClass)
+    private void runRetrogen(WorldServer world, ChunkPos chunkCoords, String retroClass)
     {
         long worldSeed = world.getSeed();
         Random fmlRandom = new Random(worldSeed);

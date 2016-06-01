@@ -15,3 +15,6 @@ build/
 .project
 /bin
 .idea/
+/run/
+/CHANGELOG.html
+/.okhttpcache/

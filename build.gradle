@@ -7,11 +7,12 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT'
     }
 }
 plugins {
     id "com.matthewprenger.cursegradle" version "1.0.7"
+    id "se.bjurr.gitchangelog.git-changelog-gradle-plugin" version "1.32"
 }
 apply plugin: 'net.minecraftforge.gradle.forge'
 apply plugin: 'maven'
@@ -24,15 +25,15 @@ group= "cpw.mods" // http://maven.apache.org/guides/mini/guide-naming-convention
 archivesBaseName = "simpleretrogen"
 
 minecraft {
-	version = "1.9-12.16.0.1865-1.9"
-    mappings = "snapshot_20160318"
+    version = "1.9.4-12.17.0.1937"
+    mappings = "snapshot_20160529"
     runDir = "run"
 }
 curseforge {
     apiKey = project.hasProperty('curseforge_apikey') ? project.curseforge_apikey : '0'
     project {
         id = '240566'
-        changelog = 'Empty'
+        changelog = file('CHANGELOG.html')
         releaseType = 'beta'
     }
 }
@@ -40,7 +41,31 @@ curseforge {
 afterEvaluate {
     tasks.curseforge240566.dependsOn.remove(reobfJar)
     tasks.curseforge240566.dependsOn.remove(jar)
+    tasks.curseforge240566.dependsOn.add(makeChangelog)
 }
+
+task makeChangelog(type: se.bjurr.gitchangelog.plugin.gradle.GitChangelogTask) {
+    filePath = "CHANGELOG.html"
+    untaggedName = "Current release ${project.version}"
+    ignoreTagsIfNameMatches = "jenkins.*"
+//    gitHubApi = "https://api.github.com/repos/cpw/simpleretrogen"
+    templateContent = """
+<h1>Simpleretrogen changelog history</h1>
+<h2>Version ${project.version} for minecraft ${project.minecraft.version}</h2>
+<ul>
+{{#tags}}
+<li><h3>{{name}}</h3>
+<hr/>
+<ul>
+{{#commits}}
+<li>{{{message}}}</li>
+{{/commits}}
+</ul>
+{{/tags}}
+</ul>
+    """
+}
+
 
 jar {
     appendix = project.minecraft.version
@@ -147,7 +172,7 @@ def getGitVersion()
     def maj = matcher[0][1]
     def min = matcher[0][2]
     def rev = matcher[0][3]
-    def bn = System.getenv("PROMOTED_NUMBER") ?: System.getenv("BUILD_NUMBER") ?: "1"
+    def bn = project.ext.properties.buildNumber ?: System.getenv("PROMOTED_NUMBER") ?: System.getenv("BUILD_NUMBER") ?: "1"
 
     out['simpleretrogen.build.major.number'] = maj.toString()
     out['simpleretrogen.build.minor.number'] = min.toString()
