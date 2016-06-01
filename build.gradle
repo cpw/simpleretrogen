@@ -34,6 +34,7 @@ curseforge {
     project {
         id = '240566'
         changelog = file('CHANGELOG.html')
+        changelogType = 'html'
         releaseType = 'beta'
     }
 }
@@ -47,7 +48,6 @@ afterEvaluate {
 task makeChangelog(type: se.bjurr.gitchangelog.plugin.gradle.GitChangelogTask) {
     filePath = "CHANGELOG.html"
     untaggedName = "Current release ${project.version}"
-    ignoreTagsIfNameMatches = "jenkins.*"
 //    gitHubApi = "https://api.github.com/repos/cpw/simpleretrogen"
     templateContent = """
 <h1>Simpleretrogen changelog history</h1>
