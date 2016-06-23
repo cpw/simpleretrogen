@@ -72,7 +72,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
 
-@Mod(modid="simpleretrogen", name="Simple Retrogen", acceptableRemoteVersions="*")
+@Mod(modid="simpleretrogen", name="Simple Retrogen", acceptableRemoteVersions="*", acceptedMinecraftVersions = "[1.9,1.11)")
 @ParametersAreNonnullByDefault
 public class WorldRetrogen {
     private List<Marker> markers = Lists.newArrayList();
