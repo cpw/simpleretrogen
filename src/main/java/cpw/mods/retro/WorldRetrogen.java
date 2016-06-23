@@ -380,6 +380,11 @@ public class WorldRetrogen {
                 for (String retroClass : retroClassList)
                 {
                     String marker = retros.get(retroClass);
+                    if (marker == null)
+                    {
+                        FMLLog.log(Level.DEBUG, "Encountered retrogen class %s with no existing marker, removing from chunk. You probably removed it from the active configuration", retroClass);
+                        continue;
+                    }
                     NBTTagList lst;
                     if (data.hasKey(marker)) {
                         lst = data.getCompoundTag(marker).getTagList("list", 8);
