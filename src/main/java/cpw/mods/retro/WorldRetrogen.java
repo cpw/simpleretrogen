@@ -346,7 +346,10 @@ public class WorldRetrogen {
             SetView<String> difference = Sets.difference(m.classes, existingGens);
             for (String retro : difference)
             {
-                queueRetrogen(retro, w, chk.getChunkCoordIntPair());
+                if (retros.containsKey(retro))
+                {
+                    queueRetrogen(retro, w, chk.getChunkCoordIntPair());
+                }
             }
         }
 
