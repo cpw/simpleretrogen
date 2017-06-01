@@ -31,6 +31,7 @@ import com.google.common.collect.Sets.SetView;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
@@ -72,7 +73,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
 
-@Mod(modid="simpleretrogen", name="Simple Retrogen", acceptableRemoteVersions="*", acceptedMinecraftVersions = "[1.9,1.11)")
+@Mod(modid="simpleretrogen", name="Simple Retrogen", acceptableRemoteVersions="*", acceptedMinecraftVersions = "[1.9,1.11.2]")
 @ParametersAreNonnullByDefault
 public class WorldRetrogen {
     private List<Marker> markers = Lists.newArrayList();
@@ -169,14 +170,14 @@ public class WorldRetrogen {
         {
             @Override
             @Nonnull
-            public String getCommandName()
+            public String getName()
             {
                 return "listretrogenclasstargets";
             }
 
             @Override
             @Nonnull
-            public String getCommandUsage(ICommandSender sender)
+            public String getUsage(ICommandSender sender)
             {
                 return "List retrogens";
             }
@@ -198,14 +199,16 @@ public class WorldRetrogen {
                         targets.add(worldGen.getClass().getName());
                     }
                 }
+
                 if (targets.isEmpty()) {
-                    sender.addChatMessage(new TextComponentString("There are no retrogen target classes"));
+                    sender.sendMessage(new TextComponentString("There are no retrogen target classes"));
                 } else {
-                    sender.addChatMessage(new TextComponentString(CommandBase.joinNiceStringFromCollection(targets)));
+                    sender.sendMessage(new TextComponentString(CommandBase.joinNiceStringFromCollection(targets)));
                 }
             }
         });
     }
+
     @EventHandler
     public void serverAboutToStart(FMLServerAboutToStartEvent evt)
     {
@@ -348,14 +351,14 @@ public class WorldRetrogen {
             {
                 if (retros.containsKey(retro))
                 {
-                    queueRetrogen(retro, w, chk.getChunkCoordIntPair());
+                    queueRetrogen(retro, w, chk.getPos());
                 }
             }
         }
 
         for (String retro : existingGens)
         {
-            completeRetrogen(chk.getChunkCoordIntPair(), w, retro);
+            completeRetrogen(chk.getPos(), w, retro);
         }
     }
 
@@ -373,7 +376,7 @@ public class WorldRetrogen {
             if (completedWork.containsKey(w))
             {
                 ListMultimap<ChunkPos, String> doneChunks = completedWork.get(w);
-                List<String> retroClassList = doneChunks.get(chunkevt.getChunk().getChunkCoordIntPair());
+                List<String> retroClassList = doneChunks.get(chunkevt.getChunk().getPos());
                 if (retroClassList.isEmpty())
                     return;
                 NBTTagCompound data = chunkevt.getData();
