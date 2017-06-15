@@ -186,7 +186,7 @@ public class WorldRetrogen {
                 if (targets.isEmpty()) {
                     sender.sendMessage(new TextComponentString("There are no retrogen target classes"));
                 } else {
-                    sender.sendMessage(new TextComponentString("There are no retrogen target classes"));
+                    sender.sendMessage(new TextComponentString(CommandBase.joinNiceStringFromCollection(targets)));
                 }
             }
         });
