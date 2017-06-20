@@ -434,12 +434,12 @@ public class WorldRetrogen {
         Random fmlRandom = new Random(worldSeed);
         long xSeed = fmlRandom.nextLong() >> 2 + 1L;
         long zSeed = fmlRandom.nextLong() >> 2 + 1L;
-        long chunkSeed = (xSeed * chunkCoords.chunkXPos + zSeed * chunkCoords.chunkZPos) ^ worldSeed;
+        long chunkSeed = (xSeed * chunkCoords.x + zSeed * chunkCoords.z) ^ worldSeed;
 
         fmlRandom.setSeed(chunkSeed);
         ChunkProviderServer providerServer = world.getChunkProvider();
         IChunkGenerator generator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, providerServer, "field_186029_c", "chunkGenerator");
-        delegates.get(retroClass).delegate.generate(fmlRandom, chunkCoords.chunkXPos, chunkCoords.chunkZPos, world, generator, providerServer);
+        delegates.get(retroClass).delegate.generate(fmlRandom, chunkCoords.x, chunkCoords.z, world, generator, providerServer);
         FMLLog.fine("Retrogenerated chunk for %s", retroClass);
         completeRetrogen(chunkCoords, world, retroClass);
     }
