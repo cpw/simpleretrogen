@@ -32,9 +32,9 @@ import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.ChunkProviderServer;
-import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.config.Property;
@@ -434,12 +434,12 @@ public class WorldRetrogen {
         Random fmlRandom = new Random(worldSeed);
         long xSeed = fmlRandom.nextLong() >> 2 + 1L;
         long zSeed = fmlRandom.nextLong() >> 2 + 1L;
-        long chunkSeed = (xSeed * chunkCoords.x + zSeed * chunkCoords.z) ^ worldSeed;
+        long chunkSeed = (xSeed * chunkCoords.chunkXPos + zSeed * chunkCoords.chunkZPos) ^ worldSeed;
 
         fmlRandom.setSeed(chunkSeed);
         ChunkProviderServer providerServer = world.getChunkProvider();
         IChunkGenerator generator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, providerServer, "field_186029_c", "chunkGenerator");
-        delegates.get(retroClass).delegate.generate(fmlRandom, chunkCoords.x, chunkCoords.z, world, generator, providerServer);
+        delegates.get(retroClass).delegate.generate(fmlRandom, chunkCoords.chunkXPos, chunkCoords.chunkZPos, world, generator, providerServer);
         FMLLog.fine("Retrogenerated chunk for %s", retroClass);
         completeRetrogen(chunkCoords, world, retroClass);
     }
