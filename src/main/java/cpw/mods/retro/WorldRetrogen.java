@@ -18,15 +18,7 @@
 
 package cpw.mods.retro;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.MapMaker;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.google.common.collect.Sets.SetView;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -35,8 +27,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
@@ -61,18 +53,13 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import org.apache.logging.log4j.Level;
 
-import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
 
-@Mod(modid="simpleretrogen", name="Simple Retrogen", acceptableRemoteVersions="*", acceptedMinecraftVersions = "[1.9,1.11)")
+@Mod(modid="simpleretrogen", name="Simple Retrogen", acceptableRemoteVersions="*", acceptedMinecraftVersions = "[1.9,1.13)")
 @ParametersAreNonnullByDefault
 public class WorldRetrogen {
     private List<Marker> markers = Lists.newArrayList();
@@ -168,23 +155,21 @@ public class WorldRetrogen {
         evt.registerServerCommand(new CommandBase()
         {
             @Override
-            @Nonnull
-            public String getCommandName()
+            public int getRequiredPermissionLevel()
             {
+                return 0;
+            }
+
+            @Override
+            public String getName() {
+
                 return "listretrogenclasstargets";
             }
 
             @Override
-            @Nonnull
-            public String getCommandUsage(ICommandSender sender)
-            {
-                return "List retrogens";
-            }
+            public String getUsage(ICommandSender sender) {
 
-            @Override
-            public int getRequiredPermissionLevel()
-            {
-                return 0;
+                return "List retrogens";
             }
 
             @Override
@@ -199,9 +184,9 @@ public class WorldRetrogen {
                     }
                 }
                 if (targets.isEmpty()) {
-                    sender.addChatMessage(new TextComponentString("There are no retrogen target classes"));
+                    sender.sendMessage(new TextComponentString("There are no retrogen target classes"));
                 } else {
-                    sender.addChatMessage(new TextComponentString(CommandBase.joinNiceStringFromCollection(targets)));
+                    sender.sendMessage(new TextComponentString(CommandBase.joinNiceStringFromCollection(targets)));
                 }
             }
         });
@@ -312,8 +297,7 @@ public class WorldRetrogen {
         private String tag;
 
         @Override
-        public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider)
-        {
+        public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider) {
             FMLLog.fine("Passing generation for %s through to underlying generator", tag);
             delegate.generate(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider);
             ChunkPos chunkCoordIntPair = new ChunkPos(chunkX, chunkZ);
@@ -348,14 +332,14 @@ public class WorldRetrogen {
             {
                 if (retros.containsKey(retro))
                 {
-                    queueRetrogen(retro, w, chk.getChunkCoordIntPair());
+                    queueRetrogen(retro, w, chk.getPos());
                 }
             }
         }
 
         for (String retro : existingGens)
         {
-            completeRetrogen(chk.getChunkCoordIntPair(), w, retro);
+            completeRetrogen(chk.getPos(), w, retro);
         }
     }
 
@@ -373,7 +357,7 @@ public class WorldRetrogen {
             if (completedWork.containsKey(w))
             {
                 ListMultimap<ChunkPos, String> doneChunks = completedWork.get(w);
-                List<String> retroClassList = doneChunks.get(chunkevt.getChunk().getChunkCoordIntPair());
+                List<String> retroClassList = doneChunks.get(chunkevt.getChunk().getPos());
                 if (retroClassList.isEmpty())
                     return;
                 NBTTagCompound data = chunkevt.getData();
